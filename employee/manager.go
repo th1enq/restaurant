@@ -1,6 +1,10 @@
 package employee
 
-import "sync"
+import (
+	"sync"
+)
+
+const NUMBEROFTHINGS = 2
 
 type Manager struct {
 }
@@ -18,15 +22,31 @@ func GetManager() *Manager {
 	return instance
 }
 
-func (m *Manager) Listen(readyFood chan interface{}, readyDrinking chan interface{}) {
-	// chRes := make(chan interface{})
-	// for {
-	// 	select {
-	// 	case <-readyFood:
-	// 		chRes <-
-	// 	case <-readyDrinking:
-	// 		// do something
-	// 	}
-	// }
+func (m *Manager) Listen(readyFood <-chan interface{}, readyDrinking <-chan interface{}) <-chan interface{} {
+	announcement := make(chan interface{})
 
+	go func() {
+		defer close(announcement)
+		for {
+			select {
+			case food, ok := <-readyFood:
+				if !ok {
+					readyFood = nil
+				} else {
+					announcement <- food
+				}
+			case drink, ok := <-readyDrinking:
+				if !ok {
+					readyDrinking = nil
+				} else {
+					announcement <- drink
+				}
+			}
+
+			if readyFood == nil && readyDrinking == nil {
+				return
+			}
+		}
+	}()
+	return announcement
 }

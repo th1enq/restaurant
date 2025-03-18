@@ -1,31 +1,38 @@
 package employee
 
-import "restaurant/helper"
+import (
+	"restaurant/helper"
+	"sync"
+)
 
 const (
 	CHEF      = "chef"
 	BARTENDER = "bartender"
-	MANAGER   = "manager"
+	WAITER    = "waiter"
 )
 
-const PENDING = "pending"
+const RELAX = "relax"
 
 type Employee struct {
 	Status string
+	ID     int
 }
 
 type IEmployee interface {
-	Work()
+	Work(chan<- interface{}, *sync.WaitGroup, string)
 	SetStatus(string)
-	GetReadyThing() chan interface{}
 }
 
-func GetEmployee(role string) (IEmployee, error) {
+func (c *Employee) SetStatus(status string) {
+	c.Status = status
+}
+
+func GetEmployee(index int, role string) (IEmployee, error) {
 	switch role {
 	case CHEF:
-		return newChef(), nil
+		return newChef(index), nil
 	case BARTENDER:
-		return newBartender(), nil
+		return newBartender(index), nil
 	default:
 		return nil, helper.ErrInvalidEmployee
 	}
