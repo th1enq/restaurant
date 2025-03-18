@@ -8,10 +8,10 @@ func NewPasta() *Pasta {
 	return &Pasta{
 		Food{
 			status: PENDING,
-			recipe: map[int]string{
-				1: "Boil the pasta",
-				2: "Add the sauce",
-				3: "Serve the pasta",
+			recipe: []string{
+				"Boil the pasta",
+				"Add the sauce",
+				"Mix the pasta and sauce",
 			},
 		},
 	}

@@ -8,10 +8,10 @@ func NewBurger() *Burger {
 	return &Burger{
 		Food{
 			status: PENDING,
-			recipe: map[int]string{
-				1: "Prepare the patty",
-				2: "Add the toppings",
-				3: "Assemble the burger",
+			recipe: []string{
+				"Prepare the bun",
+				"Grill the patty",
+				"Serve the burger",
 			},
 		},
 	}

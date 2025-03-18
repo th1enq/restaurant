@@ -1,6 +1,8 @@
 package food
 
-import "restaurant/helper"
+import (
+	"restaurant/helper"
+)
 
 const (
 	PENDING = "pending"
@@ -17,14 +19,14 @@ const (
 
 type Food struct {
 	status string
-	recipe map[int]string
+	recipe []string
 }
 
 type IFood interface {
 	GetFoodName() string
 	GetFoodStatus() string
 	SetFoodStatus(string) error
-	GetFoodStep() map[int]string
+	GetFoodStep() []string
 }
 
 func (b *Food) GetFoodStatus() string {
@@ -39,7 +41,7 @@ func (b *Food) SetFoodStatus(status string) error {
 	return nil
 }
 
-func (b *Food) GetFoodStep() map[int]string {
+func (b *Food) GetFoodStep() []string {
 	return b.recipe
 }
 

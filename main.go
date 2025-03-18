@@ -20,37 +20,36 @@ var (
 )
 
 func main() {
-	// var wg sync.WaitGroup
+	// channel for ready food and ready drinking
 	var readyFood = make(chan interface{})
 	var readyDrinking = make(chan interface{})
 
+	// Initialize chefs, bartenders, and waiters
 	for i := 0; i < NUMBEROFCHEFS; i++ {
 		chefs[i], _ = employee.GetEmployee(i+1, employee.CHEF)
 	}
-
 	for i := 0; i < NUMBEROFWAITERS; i++ {
 		waiters[i] = employee.NewWaiter(i + 1)
 	}
-
 	for i := 0; i < NUMBEROFBARTENDERS; i++ {
 		bartenders[i], _ = employee.GetEmployee(i+1, employee.BARTENDER)
 	}
 
 	var wg sync.WaitGroup
 
+	// chef goroutine
 	for _, chef := range chefs {
 		wg.Add(1)
-		go func(x interface{}) {
-			x.(employee.IEmployee).Work(readyFood, &wg, "pizza")
-		}(chef)
+		c := chef.(employee.IEmployee)
+		go c.Work(readyFood, &wg, "pasta")
 	}
 
-	// for _, bartender := range bartenders {
-	// 	wg.Add(1)
-	// 	go func(x interface{}) {
-	// 		x.(employee.IEmployee).Work(readyDrinking, &wg, "tea")
-	// 	}(bartender)
-	// }
+	// bartender goroutine
+	for _, bartender := range bartenders {
+		wg.Add(1)
+		b := bartender.(employee.IEmployee)
+		go b.Work(readyDrinking, &wg, "tea")
+	}
 
 	go func() {
 		wg.Wait()
@@ -60,6 +59,7 @@ func main() {
 
 	announcement := make(chan interface{})
 
+	// fan in pattern (readyFood and readyDrinking) -> announcement
 	go func() {
 		for val := range manager.Listen(readyFood, readyDrinking) {
 			announcement <- val
@@ -67,6 +67,8 @@ func main() {
 		close(announcement)
 	}()
 
+	// fan out pattern (announcement) -> waiters
+	// waiter goroutine
 	var wg2 sync.WaitGroup
 	for _, waiter := range waiters {
 		wg2.Add(1)
@@ -74,8 +76,6 @@ func main() {
 			w.Work(announcement, &wg2)
 		}(waiter)
 	}
-
-	// Đợi tất cả waiters hoàn thành
 	wg2.Wait()
 	fmt.Println("All waiters finished serving!")
 }

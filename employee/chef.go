@@ -24,12 +24,12 @@ func (c *Chef) Work(readyFood chan<- interface{}, wg *sync.WaitGroup, foodName s
 	}
 	recipe := things.GetFoodStep()
 
-	for _, step := range recipe {
-		c.SetStatus(fmt.Sprintf("Chef %d %s", c.ID, step))
+	for i := 0; i < len(recipe); i++ {
+		c.SetStatus(fmt.Sprintf("Chef %d %s", c.ID, recipe[i]))
 		log.Println(c.Status)
-
 		time.Sleep(time.Duration(rand.Intn(300)) * time.Millisecond)
 	}
+
 	readyFood <- things
 	c.SetStatus(drinking.SERVED)
 }

@@ -19,14 +19,14 @@ const (
 
 type Drinking struct {
 	status string
-	recipe map[int]string
+	recipe []string
 }
 
 type IDrinking interface {
 	GetDrinkingName() string
 	GetDrinkingStatus() string
 	SetDrinkingStatus(status string) error
-	GetDrinkingStep() map[int]string
+	GetDrinkingStep() []string
 }
 
 func (b *Drinking) GetDrinkingStatus() string {
@@ -41,7 +41,7 @@ func (b *Drinking) SetDrinkingStatus(status string) error {
 	return nil
 }
 
-func (b *Drinking) GetDrinkingStep() map[int]string {
+func (b *Drinking) GetDrinkingStep() []string {
 	return b.recipe
 }
 

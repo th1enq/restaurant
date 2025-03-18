@@ -8,10 +8,10 @@ func NewTea() *Tea {
 	return &Tea{
 		Drinking{
 			status: PENDING,
-			recipe: map[int]string{
-				1: "Boil water",
-				2: "Steep the tea",
-				3: "Pour tea into a cup",
+			recipe: []string{
+				"Boil water",
+				"Steep the tea",
+				"Pour tea into a cup",
 			},
 		},
 	}
