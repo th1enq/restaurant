@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"restaurant/drinking"
 	"restaurant/food"
 	"sync"
 	"time"
@@ -15,9 +14,16 @@ type Chef struct {
 }
 
 func (c *Chef) Work(readyFood chan<- interface{}, wg *sync.WaitGroup, foodName string) {
-	defer wg.Done()
-	defer c.SetStatus(RELAX)
+	defer func() {
+		wg.Done()
+		c.Mu.Lock()
+		c.Status = RELAX
+		c.Mu.Unlock()
+	}()
 
+	c.Mu.Lock()
+	c.Status = "Working"
+	c.Mu.Unlock()
 	things, err := food.GetFood(foodName)
 	if err != nil {
 		panic(err)
@@ -25,13 +31,11 @@ func (c *Chef) Work(readyFood chan<- interface{}, wg *sync.WaitGroup, foodName s
 	recipe := things.GetFoodStep()
 
 	for i := 0; i < len(recipe); i++ {
-		c.SetStatus(fmt.Sprintf("Chef %d %s", c.ID, recipe[i]))
+		c.Status = fmt.Sprintf("Chef %d %s", c.ID, recipe[i])
 		log.Println(c.Status)
 		time.Sleep(time.Duration(rand.Intn(300)) * time.Millisecond)
 	}
-
 	readyFood <- things
-	c.SetStatus(drinking.SERVED)
 }
 
 func newChef(id int) *Chef {

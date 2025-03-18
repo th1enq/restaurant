@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"restaurant/customer"
+	"restaurant/drinking"
 	"restaurant/employee"
+	"restaurant/food"
 	"sync"
 )
 
@@ -13,44 +16,89 @@ const (
 )
 
 var (
+	Luffy   = customer.NewCustomer("Luffy")
+	Zoro    = customer.NewCustomer("Zoro")
+	Chopper = customer.NewCustomer("Chopper")
+	Nami    = customer.NewCustomer("Nami")
+)
+
+var (
 	manager    = employee.GetManager()
-	chefs      = make([]interface{}, NUMBEROFCHEFS)
-	bartenders = make([]interface{}, NUMBEROFBARTENDERS)
+	chefs      = make([]*employee.Chef, NUMBEROFCHEFS)
+	bartenders = make([]*employee.Bartender, NUMBEROFBARTENDERS)
 	waiters    = make([]*employee.Waiter, NUMBEROFWAITERS)
 )
 
-func main() {
-	// channel for ready food and ready drinking
-	var readyFood = make(chan interface{})
-	var readyDrinking = make(chan interface{})
+var (
+	readyFood     = make(chan interface{})
+	readyDrinking = make(chan interface{})
+)
 
+func main() {
 	// Initialize chefs, bartenders, and waiters
 	for i := 0; i < NUMBEROFCHEFS; i++ {
-		chefs[i], _ = employee.GetEmployee(i+1, employee.CHEF)
+		e, _ := employee.GetEmployee(i+1, employee.CHEF)
+		chefs[i] = e.(*employee.Chef)
+	}
+	for i := 0; i < NUMBEROFBARTENDERS; i++ {
+		e, _ := employee.GetEmployee(i+1, employee.BARTENDER)
+		bartenders[i] = e.(*employee.Bartender)
 	}
 	for i := 0; i < NUMBEROFWAITERS; i++ {
 		waiters[i] = employee.NewWaiter(i + 1)
 	}
-	for i := 0; i < NUMBEROFBARTENDERS; i++ {
-		bartenders[i], _ = employee.GetEmployee(i+1, employee.BARTENDER)
-	}
+
+	// Customers order food and drinks
+	Luffy.Order(food.PIZZA)
+	// Luffy.Order(drinking.COFFEE)
+
+	Zoro.Order(food.PASTA)
+	// Zoro.Order(drinking.TEA)
+
+	Chopper.Order(food.PIZZA)
+	// Chopper.Order(drinking.JUICE)
+
+	Nami.Order(food.PASTA)
+	// Nami.Order(drinking.JUICE)
 
 	var wg sync.WaitGroup
+	orderLists := manager.OrderLists
 
-	// chef goroutine
-	for _, chef := range chefs {
+	// Process orders
+	for _, order := range orderLists {
 		wg.Add(1)
-		c := chef.(employee.IEmployee)
-		go c.Work(readyFood, &wg, "pasta")
+		assigned := false
+
+		for !assigned {
+			foodOrder, err := food.GetFood(order.ThingName)
+			if err == nil {
+				for _, chef := range chefs {
+					chef.Mu.Lock()
+					if chef.Status == employee.RELAX {
+						chef.Status = "Working"
+						chef.Mu.Unlock()
+						go chef.Work(readyFood, &wg, foodOrder.GetFoodName())
+						assigned = true
+						break
+					}
+					chef.Mu.Unlock()
+				}
+			} else {
+				drinkingOrder, _ := drinking.GetDrinking(order.ThingName)
+				for _, bartender := range bartenders {
+					bartender.Mu.Lock()
+					if bartender.Status == employee.RELAX {
+						go bartender.Work(readyDrinking, &wg, drinkingOrder.GetDrinkingName())
+						assigned = true
+						break
+					}
+					bartender.Mu.Unlock()
+				}
+			}
+		}
 	}
 
-	// bartender goroutine
-	for _, bartender := range bartenders {
-		wg.Add(1)
-		b := bartender.(employee.IEmployee)
-		go b.Work(readyDrinking, &wg, "tea")
-	}
-
+	// Wait for chefs and bartenders to finish
 	go func() {
 		wg.Wait()
 		close(readyFood)
@@ -59,7 +107,7 @@ func main() {
 
 	announcement := make(chan interface{})
 
-	// fan in pattern (readyFood and readyDrinking) -> announcement
+	// Fan-in pattern: Collect results from readyFood and readyDrinking into announcement
 	go func() {
 		for val := range manager.Listen(readyFood, readyDrinking) {
 			announcement <- val
@@ -67,8 +115,7 @@ func main() {
 		close(announcement)
 	}()
 
-	// fan out pattern (announcement) -> waiters
-	// waiter goroutine
+	// Fan-out pattern: Waiters serve the food and drinks
 	var wg2 sync.WaitGroup
 	for _, waiter := range waiters {
 		wg2.Add(1)
@@ -77,5 +124,6 @@ func main() {
 		}(waiter)
 	}
 	wg2.Wait()
+
 	fmt.Println("All waiters finished serving!")
 }

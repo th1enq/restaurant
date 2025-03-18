@@ -14,8 +14,10 @@ type Bartender struct {
 }
 
 func (b *Bartender) Work(readyDrinking chan<- interface{}, wg *sync.WaitGroup, drinkingName string) {
-	defer wg.Done()
-	defer b.SetStatus(RELAX)
+	defer func() {
+		wg.Done()
+		b.Status = RELAX
+	}()
 	things, err := drinking.GetDrinking(drinkingName)
 	if err != nil {
 		panic(err)
@@ -23,12 +25,11 @@ func (b *Bartender) Work(readyDrinking chan<- interface{}, wg *sync.WaitGroup, d
 	recipe := things.GetDrinkingStep()
 
 	for _, step := range recipe {
-		b.SetStatus(fmt.Sprintf("Bartender %d %s", b.ID, step))
+		b.Status = fmt.Sprintf("Bartender %d %s", b.ID, step)
 		log.Println(b.Status)
 		time.Sleep(time.Duration(rand.Intn(300)) * time.Millisecond)
 	}
 	readyDrinking <- things
-	b.SetStatus(drinking.SERVED)
 }
 
 func newBartender(id int) *Bartender {

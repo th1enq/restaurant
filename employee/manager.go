@@ -1,12 +1,14 @@
 package employee
 
 import (
+	"restaurant/order"
 	"sync"
 )
 
 const NUMBEROFTHINGS = 2
 
 type Manager struct {
+	OrderLists []order.Order
 }
 
 var (
@@ -49,4 +51,9 @@ func (m *Manager) Listen(readyFood <-chan interface{}, readyDrinking <-chan inte
 		}
 	}()
 	return announcement
+}
+
+func (m *Manager) AddOrder(order order.Order) {
+
+	m.OrderLists = append(m.OrderLists, order)
 }

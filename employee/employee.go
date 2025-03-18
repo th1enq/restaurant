@@ -16,15 +16,11 @@ const RELAX = "relax"
 type Employee struct {
 	Status string
 	ID     int
+	Mu     sync.Mutex
 }
 
 type IEmployee interface {
 	Work(chan<- interface{}, *sync.WaitGroup, string)
-	SetStatus(string)
-}
-
-func (c *Employee) SetStatus(status string) {
-	c.Status = status
 }
 
 func GetEmployee(index int, role string) (IEmployee, error) {
