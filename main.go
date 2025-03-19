@@ -50,69 +50,79 @@ func main() {
 
 	// Customers order food and drinks
 	Luffy.Order(food.PIZZA)
-	// Luffy.Order(drinking.COFFEE)
+	Luffy.Order(food.PASTA)
+	Luffy.Order(drinking.COFFEE)
 
 	Zoro.Order(food.PASTA)
-	// Zoro.Order(drinking.TEA)
+	Zoro.Order(food.BURGER)
+	Zoro.Order(drinking.TEA)
 
 	Chopper.Order(food.PIZZA)
-	// Chopper.Order(drinking.JUICE)
+	Chopper.Order(food.BURGER)
+	Chopper.Order(drinking.JUICE)
 
+	Nami.Order(food.BURGER)
 	Nami.Order(food.PASTA)
-	// Nami.Order(drinking.JUICE)
+	Nami.Order(drinking.JUICE)
 
 	var wg sync.WaitGroup
 	orderLists := manager.OrderLists
 
-	// Process orders
-	for _, order := range orderLists {
-		wg.Add(1)
-		assigned := false
-
-		for !assigned {
-			foodOrder, err := food.GetFood(order.ThingName)
-			if err == nil {
-				for _, chef := range chefs {
-					chef.Mu.Lock()
-					if chef.Status == employee.RELAX {
-						chef.Status = "Working"
-						chef.Mu.Unlock()
-						go chef.Work(readyFood, &wg, foodOrder.GetFoodName())
-						assigned = true
-						break
-					}
-					chef.Mu.Unlock()
-				}
-			} else {
-				drinkingOrder, _ := drinking.GetDrinking(order.ThingName)
-				for _, bartender := range bartenders {
-					bartender.Mu.Lock()
-					if bartender.Status == employee.RELAX {
-						go bartender.Work(readyDrinking, &wg, drinkingOrder.GetDrinkingName())
-						assigned = true
-						break
-					}
-					bartender.Mu.Unlock()
-				}
-			}
-		}
-	}
-
-	// Wait for chefs and bartenders to finish
-	go func() {
-		wg.Wait()
-		close(readyFood)
-		close(readyDrinking)
-	}()
-
 	announcement := make(chan interface{})
-
 	// Fan-in pattern: Collect results from readyFood and readyDrinking into announcement
 	go func() {
 		for val := range manager.Listen(readyFood, readyDrinking) {
 			announcement <- val
 		}
 		close(announcement)
+	}()
+
+	go func() {
+		// Process orders
+		for _, orders := range orderLists {
+			wg.Add(1)
+			assigned := false
+
+			for !assigned {
+				_, ok := orders.Things.(food.IFood)
+				if ok {
+					for _, chef := range chefs {
+						chef.Mu.Lock()
+						if chef.Status == employee.RELAX {
+							chef.Status = "Working"
+							chef.Mu.Unlock()
+							go func(c *employee.Chef) {
+								c.Work(readyFood, &wg, orders)
+							}(chef)
+							assigned = true
+							break
+						}
+						chef.Mu.Unlock()
+					}
+				} else {
+					for _, bartender := range bartenders {
+						bartender.Mu.Lock()
+						if bartender.Status == employee.RELAX {
+							bartender.Status = "Working"
+							bartender.Mu.Unlock()
+							go func(b *employee.Bartender) {
+								b.Work(readyDrinking, &wg, orders)
+							}(bartender)
+							assigned = true
+							break
+						}
+						bartender.Mu.Unlock()
+					}
+				}
+			}
+		}
+	}()
+
+	// Wait for chefs and bartenders to finish
+	go func() {
+		wg.Wait()
+		close(readyFood)
+		close(readyDrinking)
 	}()
 
 	// Fan-out pattern: Waiters serve the food and drinks

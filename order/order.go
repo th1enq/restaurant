@@ -1,13 +1,13 @@
 package order
 
 type Order struct {
-	ThingName    string
+	Things       interface{}
 	NameCustomer string
 }
 
-func NewOrder(thing string, name string) *Order {
+func NewOrder(Thing interface{}, name string) *Order {
 	return &Order{
-		ThingName:    thing,
+		Things:       Thing,
 		NameCustomer: name,
 	}
 }

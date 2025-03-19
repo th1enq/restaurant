@@ -2,6 +2,7 @@ package employee
 
 import (
 	"restaurant/helper"
+	"restaurant/order"
 	"sync"
 )
 
@@ -20,7 +21,7 @@ type Employee struct {
 }
 
 type IEmployee interface {
-	Work(chan<- interface{}, *sync.WaitGroup, string)
+	Work(chan<- interface{}, *sync.WaitGroup, order.Order)
 }
 
 func GetEmployee(index int, role string) (IEmployee, error) {

@@ -1,9 +1,10 @@
 package employee
 
 import (
-	"fmt"
+	"log"
 	"restaurant/drinking"
 	"restaurant/food"
+	"restaurant/order"
 	"sync"
 )
 
@@ -14,11 +15,13 @@ type Waiter struct {
 func (c *Waiter) Work(announcement <-chan interface{}, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for val := range announcement {
-		switch v := val.(type) {
-		case food.IFood:
-			fmt.Printf("Waiter %d served %s\n", c.ID, v.GetFoodName())
-		case drinking.IDrinking:
-			fmt.Printf("Waiter %d served %s\n", c.ID, v.GetDrinkingName())
+		value, _ := val.(order.Order)
+		foodName, isFood := value.Things.(food.IFood)
+		drinkingName, _ := value.Things.(drinking.IDrinking)
+		if isFood {
+			log.Printf("Waiter %d serving %v for %v\n", c.ID, foodName.GetFoodName(), value.NameCustomer)
+		} else {
+			log.Printf("Waiter %d serving %v for %v\n", c.ID, drinkingName.GetDrinkingName(), value.NameCustomer)
 		}
 	}
 }
