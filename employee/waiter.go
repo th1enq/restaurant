@@ -12,22 +12,27 @@ type Waiter struct {
 	Employee
 }
 
-func (c *Waiter) Work(announcement <-chan interface{}, wg *sync.WaitGroup) {
+func (w *Waiter) Work(announcement <-chan interface{}, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for val := range announcement {
-		value, _ := val.(order.Order)
-		foodName, isFood := value.Things.(food.IFood)
-		drinkingName, _ := value.Things.(drinking.IDrinking)
-		if isFood {
-			log.Printf("Waiter %d serving %v for %v\n", c.ID, foodName.GetFoodName(), value.NameCustomer)
+		orderItem, ok := val.(order.Order)
+		if !ok {
+			log.Printf("Waiter %d received an invalid order: %v\n", w.ID, val)
+			continue
+		}
+
+		if foodItem, isFood := orderItem.Item.(food.IFood); isFood {
+			log.Printf("Waiter %d serving food: %s for customer: %s\n", w.ID, foodItem.GetFoodName(), orderItem.NameCustomer)
+		} else if drinkItem, isDrink := orderItem.Item.(drinking.IDrinking); isDrink {
+			log.Printf("Waiter %d serving drink: %s for customer: %s\n", w.ID, drinkItem.GetDrinkingName(), orderItem.NameCustomer)
 		} else {
-			log.Printf("Waiter %d serving %v for %v\n", c.ID, drinkingName.GetDrinkingName(), value.NameCustomer)
+			log.Printf("Waiter %d received an unknown item type in order: %v\n", w.ID, orderItem)
 		}
 	}
 }
 
-func (c *Waiter) SetStatus(status string) {
-	c.Status = status
+func (w *Waiter) SetStatus(status string) {
+	w.Status = status
 }
 
 func NewWaiter(id int) *Waiter {

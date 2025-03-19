@@ -7,8 +7,7 @@ type Tea struct {
 func NewTea() *Tea {
 	return &Tea{
 		Drinking{
-			status: PENDING,
-			recipe: []string{
+			Recipe: []string{
 				"Boil water",
 				"Steep the tea",
 				"Pour tea into a cup",

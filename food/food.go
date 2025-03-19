@@ -18,31 +18,16 @@ const (
 )
 
 type Food struct {
-	status string
-	recipe []string
+	Recipe []string
 }
 
 type IFood interface {
 	GetFoodName() string
-	GetFoodStatus() string
-	SetFoodStatus(string) error
-	GetFoodStep() []string
+	GetRecipe() []string
 }
 
-func (b *Food) GetFoodStatus() string {
-	return b.status
-}
-
-func (b *Food) SetFoodStatus(status string) error {
-	if status != PENDING && status != MAKING && status != SERVED {
-		return helper.ErrInvalidStatus
-	}
-	b.status = status
-	return nil
-}
-
-func (b *Food) GetFoodStep() []string {
-	return b.recipe
+func (b *Food) GetRecipe() []string {
+	return b.Recipe
 }
 
 func GetFood(name string) (IFood, error) {

@@ -14,27 +14,27 @@ type Bartender struct {
 	Employee
 }
 
-func (b *Bartender) Work(readyDrinking chan<- interface{}, wg *sync.WaitGroup, thingsOrder order.Order) {
-	defer func() {
-		wg.Done()
-		b.Mu.Lock()
-		b.Status = RELAX
-		b.Mu.Unlock()
-	}()
-	things, err := drinking.GetDrinking(thingsOrder.Things.(drinking.IDrinking).GetDrinkingName())
-	if err != nil {
-		panic(err)
-	}
-	recipe := things.GetDrinkingStep()
+func (b *Bartender) Work(readyDrinking chan<- interface{}, wg *sync.WaitGroup, orderLists chan order.Order) {
+	defer wg.Done()
 
-	for _, step := range recipe {
-		b.Mu.Lock()
-		b.Status = fmt.Sprintf("Bartender %d %s", b.ID, step)
-		b.Mu.Unlock()
-		log.Println(b.Status)
-		time.Sleep(time.Duration(rand.Intn(300)) * time.Millisecond)
+	for orderItem := range orderLists {
+		if b.Status != RELAX {
+			continue
+		}
+		fmt.Println(b, orderItem)
+		drinkItem, err := drinking.GetDrinking(orderItem.Item.(drinking.IDrinking).GetDrinkingName())
+		if err != nil {
+			panic(err)
+		}
+		b.SetStatus(WORKING)
+		for _, step := range drinkItem.GetRecipe() {
+			b.SetStatus(fmt.Sprintf("Bartender %d %s", b.ID, step))
+			log.Println(b.Status)
+			time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
+		}
+		readyDrinking <- orderItem
+		b.SetStatus(RELAX)
 	}
-	readyDrinking <- thingsOrder
 }
 
 func newBartender(id int) *Bartender {

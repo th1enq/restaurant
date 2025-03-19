@@ -7,8 +7,7 @@ type Juice struct {
 func NewJuice() *Juice {
 	return &Juice{
 		Drinking{
-			status: PENDING,
-			recipe: []string{
+			Recipe: []string{
 				"Peel the fruit",
 				"Cut the fruit",
 				"Blend the fruit",

@@ -14,28 +14,21 @@ type Chef struct {
 	Employee
 }
 
-func (c *Chef) Work(readyFood chan<- interface{}, wg *sync.WaitGroup, thingOrder order.Order) {
-	defer func() {
-		wg.Done()
-		c.Mu.Lock()
-		c.Status = RELAX
-		c.Mu.Unlock()
-	}()
+func (c *Chef) Work(readyFood chan<- interface{}, wg *sync.WaitGroup, orderLists chan order.Order) {
+	defer wg.Done()
 
-	things, err := food.GetFood(thingOrder.Things.(food.IFood).GetFoodName())
-	if err != nil {
-		panic(err)
+	for orderItem := range orderLists {
+		fmt.Println(c, orderItem)
+		foodItem, _ := food.GetFood(orderItem.Item.(food.IFood).GetFoodName())
+		c.SetStatus(WORKING)
+		for _, step := range foodItem.GetRecipe() {
+			c.SetStatus(fmt.Sprintf("Chef %d %s", c.ID, step))
+			log.Println(c.Status)
+			time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
+		}
+		readyFood <- orderItem
+		c.SetStatus(RELAX)
 	}
-	recipe := things.GetFoodStep()
-
-	for i := 0; i < len(recipe); i++ {
-		c.Mu.Lock()
-		c.Status = fmt.Sprintf("Chef %d %s", c.ID, recipe[i])
-		c.Mu.Unlock()
-		log.Println(c.Status)
-		time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
-	}
-	readyFood <- thingOrder
 }
 
 func newChef(id int) *Chef {

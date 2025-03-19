@@ -5,12 +5,6 @@ import (
 )
 
 const (
-	PENDING = "pending"
-	MAKING  = "making"
-	SERVED  = "served"
-)
-
-const (
 	COFFEE = "coffee"
 	JUICE  = "juice"
 	TEA    = "tea"
@@ -18,31 +12,16 @@ const (
 )
 
 type Drinking struct {
-	status string
-	recipe []string
+	Recipe []string
 }
 
 type IDrinking interface {
 	GetDrinkingName() string
-	GetDrinkingStatus() string
-	SetDrinkingStatus(status string) error
-	GetDrinkingStep() []string
+	GetRecipe() []string
 }
 
-func (b *Drinking) GetDrinkingStatus() string {
-	return b.status
-}
-
-func (b *Drinking) SetDrinkingStatus(status string) error {
-	if status != PENDING && status != MAKING && status != SERVED {
-		return helper.ErrInvalidStatus
-	}
-	b.status = status
-	return nil
-}
-
-func (b *Drinking) GetDrinkingStep() []string {
-	return b.recipe
+func (b *Drinking) GetRecipe() []string {
+	return b.Recipe
 }
 
 func GetDrinking(name string) (IDrinking, error) {

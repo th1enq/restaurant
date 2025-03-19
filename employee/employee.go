@@ -13,6 +13,7 @@ const (
 )
 
 const RELAX = "relax"
+const WORKING = "working"
 
 type Employee struct {
 	Status string
@@ -21,7 +22,13 @@ type Employee struct {
 }
 
 type IEmployee interface {
-	Work(chan<- interface{}, *sync.WaitGroup, order.Order)
+	Work(chan<- interface{}, *sync.WaitGroup, chan order.Order)
+}
+
+func (e *Employee) SetStatus(status string) {
+	e.Mu.Lock()
+	e.Status = status
+	e.Mu.Unlock()
 }
 
 func GetEmployee(index int, role string) (IEmployee, error) {

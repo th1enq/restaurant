@@ -7,8 +7,7 @@ type Coffee struct {
 func NewCoffee() *Coffee {
 	return &Coffee{
 		Drinking{
-			status: PENDING,
-			recipe: []string{
+			Recipe: []string{
 				"Grind the coffee beans",
 				"Boil water",
 				"Pour the water over the coffee grounds",

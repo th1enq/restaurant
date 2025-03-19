@@ -7,8 +7,7 @@ type Pizza struct {
 func NewPizza() *Pizza {
 	return &Pizza{
 		Food{
-			status: PENDING,
-			recipe: []string{
+			Recipe: []string{
 				"Prepare the dough",
 				"Add the sauce",
 				"Add the toppings",
