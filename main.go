@@ -2,19 +2,18 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"restaurant/customer"
 	"restaurant/drinking"
 	"restaurant/employee"
 	"restaurant/food"
 	"restaurant/order"
 	"sync"
-	"time"
 )
 
 const (
 	NUMBEROFCHEFS      = 3
 	NUMBEROFBARTENDERS = 3
-	NUMBEROFWAITERS    = 3
 )
 
 var (
@@ -28,16 +27,16 @@ var (
 	manager    = employee.GetManager()
 	chefs      = make([]*employee.Chef, NUMBEROFCHEFS)
 	bartenders = make([]*employee.Bartender, NUMBEROFBARTENDERS)
-	waiters    = make([]*employee.Waiter, NUMBEROFWAITERS)
 )
 
 var (
-	wg            sync.WaitGroup
+	wgFood        sync.WaitGroup
+	wgDrinking    sync.WaitGroup
 	readyFood     = make(chan interface{})
 	readyDrinking = make(chan interface{})
 )
 
-var orderHistory sync.Map
+var workHistory sync.Map
 
 func main() {
 	// Initialize chefs, bartenders, and waiters
@@ -52,40 +51,53 @@ func main() {
 	var foodOrderList = make(chan order.Order, len(manager.FoodLists))
 	var drinkOrderList = make(chan order.Order, len(manager.DrinkLists))
 
+	// fan out pattern: Distribute food and drink orders to chefs and bartenders
 	for _, chef := range chefs {
-		wg.Add(1)
-		go chef.Work(readyFood, &wg, foodOrderList)
+		chef.Ready <- employee.READY
+		go chef.Work(readyFood, &wgFood, foodOrderList, &workHistory)
 	}
 
 	for _, bartender := range bartenders {
-		wg.Add(1)
-		go bartender.Work(readyDrinking, &wg, drinkOrderList)
+		bartender.Ready <- employee.READY
+		go bartender.Work(readyDrinking, &wgDrinking, drinkOrderList, &workHistory)
 	}
 
 	for _, order := range manager.FoodLists {
-		fmt.Println("Order: ", order)
-		foodOrderList <- order
-	}
-	for _, order := range manager.DrinkLists {
-		fmt.Println("Order: ", order)
+		wgFood.Add(1)
 		foodOrderList <- order
 	}
 	close(foodOrderList)
+	for _, order := range manager.DrinkLists {
+		wgDrinking.Add(1)
+		drinkOrderList <- order
+	}
 	close(drinkOrderList)
 
 	// Wait for chefs and bartenders to finish
 	go func() {
-		wg.Wait()
+		wgFood.Wait()
 		close(readyFood)
+	}()
+	go func() {
+		wgDrinking.Wait()
 		close(readyDrinking)
 	}()
 
-	// Fan-out pattern: Waiters serve the food and drinks
-	waitForWaiters(announcement)
+	for x := range announcement {
+		val := x.(order.Order)
+		if foodItem, ok := val.Item.(food.IFood); ok {
+			log.Printf("Customer: %s is served %s", val.NameCustomer, foodItem.GetFoodName())
+			continue
+		}
+		if drinkItem, ok := val.Item.(drinking.IDrinking); ok {
+			log.Printf("Customer: %s is served %s", val.NameCustomer, drinkItem.GetDrinkingName())
+			continue
+		}
+	}
 
-	fmt.Println("All waiters finished serving!")
+	fmt.Println("All waiters finished serving!!!")
 
-	// orderTrace()
+	workHistoryTrace()
 }
 
 func initializeEmployees() {
@@ -97,27 +109,20 @@ func initializeEmployees() {
 		e, _ := employee.GetEmployee(i+1, employee.BARTENDER)
 		bartenders[i] = e.(*employee.Bartender)
 	}
-	for i := 0; i < NUMBEROFWAITERS; i++ {
-		waiters[i] = employee.NewWaiter(i + 1)
-	}
 }
 
 func placeOrder() {
 	Luffy.Order(food.PIZZA)
-	Luffy.Order(food.PASTA)
+	Luffy.Order(drinking.JUICE)
 	Luffy.Order(drinking.TEA)
 
 	Zoro.Order(drinking.COFFEE)
-	Zoro.Order(food.PASTA)
+	Zoro.Order(food.BURGER)
 	Zoro.Order(food.BURGER)
 
 	Chopper.Order(food.PIZZA)
 	Chopper.Order(food.BURGER)
 	Chopper.Order(drinking.JUICE)
-
-	Nami.Order(food.BURGER)
-	Nami.Order(drinking.JUICE)
-	Nami.Order(food.PASTA)
 }
 
 func fanIn(readyFood, readyDrinking <-chan interface{}) <-chan interface{} {
@@ -126,37 +131,20 @@ func fanIn(readyFood, readyDrinking <-chan interface{}) <-chan interface{} {
 		defer close(announcement)
 		for val := range manager.Listen(readyFood, readyDrinking) {
 			announcement <- val
-			fmt.Println(val)
-			orderHistory.Store(val, time.Now())
 		}
 	}()
 	return announcement
 }
 
-func waitForWaiters(announcement <-chan interface{}) {
-	var wg2 sync.WaitGroup
-	for _, waiter := range waiters {
-		wg2.Add(1)
-		go func(w *employee.Waiter) {
-			w.Work(announcement, &wg2)
-		}(waiter)
-	}
-	wg2.Wait()
+func workHistoryTrace() {
+	fmt.Println("Working history:")
+	workHistory.Range(func(key, count interface{}) bool {
+		if employee, ok := key.(*employee.Chef); ok {
+			fmt.Printf("Chef %d worked on %v orders\n", employee.Employee.ID, count)
+		}
+		if employee, ok := key.(*employee.Bartender); ok {
+			fmt.Printf("Bartender %d worked on %v orders\n", employee.Employee.ID, count)
+		}
+		return true
+	})
 }
-
-// func orderTrace() {
-// 	fmt.Println("Restaurant history:")
-// 	orderHistory.Range(func(key, value interface{}) bool {
-// 		order := key.(*order.Order)
-
-// 		timestamp := value.(time.Time).Format("2006-01-02 15:04:05.000000000")
-
-// 		if foodItem, ok := order.Item.(food.IFood); ok {
-// 			fmt.Printf("Customer: %s ordered %s at %v\n", order.NameCustomer, foodItem.GetFoodName(), timestamp)
-// 		} else {
-// 			drinkItem := order.Item.(drinking.IDrinking)
-// 			fmt.Printf("Customer: %s ordered %s at %v\n", order.NameCustomer, drinkItem.GetDrinkingName(), timestamp)
-// 		}
-// 		return true
-// 	})
-// }

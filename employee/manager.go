@@ -1,8 +1,6 @@
 package employee
 
 import (
-	"restaurant/drinking"
-	"restaurant/food"
 	"restaurant/order"
 	"sync"
 )
@@ -31,7 +29,7 @@ func (m *Manager) Listen(readyFood <-chan interface{}, readyDrinking <-chan inte
 	announcement := make(chan interface{})
 	go func() {
 		defer close(announcement)
-		for {
+		for readyFood != nil || readyDrinking != nil {
 			select {
 			case food, ok := <-readyFood:
 				if !ok {
@@ -46,22 +44,15 @@ func (m *Manager) Listen(readyFood <-chan interface{}, readyDrinking <-chan inte
 					announcement <- drink
 				}
 			}
-
-			if readyFood == nil && readyDrinking == nil {
-				return
-			}
 		}
 	}()
 	return announcement
 }
 
-func (m *Manager) AddOrder(order order.Order) {
-	if _, isFood := order.Item.(food.IFood); isFood {
-		m.FoodLists = append(m.FoodLists, order)
-		return
-	}
-	if _, isDrink := order.Item.(drinking.IDrinking); isDrink {
-		m.DrinkLists = append(m.DrinkLists, order)
-		return
-	}
+func (m *Manager) AddFoodOrder(order order.Order) {
+	m.FoodLists = append(m.FoodLists, order)
+}
+
+func (m *Manager) AddDrinkOrder(order order.Order) {
+	m.DrinkLists = append(m.DrinkLists, order)
 }

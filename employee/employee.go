@@ -12,23 +12,16 @@ const (
 	WAITER    = "waiter"
 )
 
-const RELAX = "relax"
-const WORKING = "working"
+const READY = true
+const BUSY = false
 
 type Employee struct {
-	Status string
-	ID     int
-	Mu     sync.Mutex
+	Ready chan interface{}
+	ID    int
 }
 
 type IEmployee interface {
-	Work(chan<- interface{}, *sync.WaitGroup, chan order.Order)
-}
-
-func (e *Employee) SetStatus(status string) {
-	e.Mu.Lock()
-	e.Status = status
-	e.Mu.Unlock()
+	Work(chan<- interface{}, *sync.WaitGroup, chan order.Order, *sync.Map)
 }
 
 func GetEmployee(index int, role string) (IEmployee, error) {

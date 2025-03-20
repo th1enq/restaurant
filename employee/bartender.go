@@ -1,7 +1,6 @@
 package employee
 
 import (
-	"fmt"
 	"log"
 	"math/rand"
 	"restaurant/drinking"
@@ -14,34 +13,31 @@ type Bartender struct {
 	Employee
 }
 
-func (b *Bartender) Work(readyDrinking chan<- interface{}, wg *sync.WaitGroup, orderLists chan order.Order) {
-	defer wg.Done()
+func (b *Bartender) Work(readyDrinking chan<- interface{}, wg *sync.WaitGroup, orderLists chan order.Order, workHistory *sync.Map) {
 
 	for orderItem := range orderLists {
-		if b.Status != RELAX {
-			continue
-		}
-		fmt.Println(b, orderItem)
-		drinkItem, err := drinking.GetDrinking(orderItem.Item.(drinking.IDrinking).GetDrinkingName())
-		if err != nil {
-			panic(err)
-		}
-		b.SetStatus(WORKING)
+		<-b.Ready
+		drinkItem, _ := drinking.GetDrinking(orderItem.Item.(drinking.IDrinking).GetDrinkingName())
 		for _, step := range drinkItem.GetRecipe() {
-			b.SetStatus(fmt.Sprintf("Bartender %d %s", b.ID, step))
-			log.Println(b.Status)
+			log.Printf("Bartender %d %s", b.ID, step)
 			time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
 		}
+		b.Ready <- READY
 		readyDrinking <- orderItem
-		b.SetStatus(RELAX)
+		if val, ok := workHistory.Load(b); ok {
+			workHistory.Store(b, val.(int)+1)
+		} else {
+			workHistory.Store(b, 1)
+		}
+		wg.Done()
 	}
 }
 
 func newBartender(id int) *Bartender {
 	return &Bartender{
 		Employee: Employee{
-			Status: RELAX,
-			ID:     id,
+			Ready: make(chan interface{}, 1),
+			ID:    id,
 		},
 	}
 }

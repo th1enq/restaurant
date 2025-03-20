@@ -1,6 +1,7 @@
 package customer
 
 import (
+	"log"
 	"restaurant/drinking"
 	"restaurant/employee"
 	"restaurant/food"
@@ -19,12 +20,13 @@ func NewCustomer(name string) *Customer {
 }
 
 func (c *Customer) Order(itemName string) {
+	log.Printf("%s orders %s", c.name, itemName)
 	if foodOrder, err := food.GetFood(itemName); err == nil {
-		employee.GetManager().AddOrder(*order.NewOrder(foodOrder, c.name))
+		employee.GetManager().AddFoodOrder(*order.NewOrder(foodOrder, c.name))
 		return
 	}
 	if drinkOrder, err := drinking.GetDrinking(itemName); err == nil {
-		employee.GetManager().AddOrder(*order.NewOrder(drinkOrder, c.name))
+		employee.GetManager().AddDrinkOrder(*order.NewOrder(drinkOrder, c.name))
 		return
 	}
 	panic(helper.ErrInvalidItem)
