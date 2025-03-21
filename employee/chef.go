@@ -32,7 +32,7 @@ func (c *Chef) Work(readyFood chan<- interface{}, wg *sync.WaitGroup, orderLists
 	}
 }
 
-func newChef(id int) *Chef {
+func NewChef(id int) *Chef {
 	return &Chef{
 		Employee: Employee{
 			Ready: make(chan interface{}, 1),

@@ -39,6 +39,13 @@ var (
 var workHistory sync.Map
 
 func main() {
+	// register food and drink
+	registerFood()
+	registerDrinking()
+
+	// Register employees
+	registerEmployees()
+
 	// Initialize chefs, bartenders, and waiters
 	initializeEmployees()
 
@@ -52,15 +59,7 @@ func main() {
 	var drinkOrderList = make(chan order.Order, len(manager.DrinkLists))
 
 	// fan out pattern: Distribute food and drink orders to chefs and bartenders
-	for _, chef := range chefs {
-		chef.Ready <- employee.READY
-		go chef.Work(readyFood, &wgFood, foodOrderList, &workHistory)
-	}
-
-	for _, bartender := range bartenders {
-		bartender.Ready <- employee.READY
-		go bartender.Work(readyDrinking, &wgDrinking, drinkOrderList, &workHistory)
-	}
+	working(foodOrderList, drinkOrderList)
 
 	for _, order := range manager.FoodLists {
 		wgFood.Add(1)
@@ -109,6 +108,51 @@ func initializeEmployees() {
 		e, _ := employee.GetEmployee(i+1, employee.BARTENDER)
 		bartenders[i] = e.(*employee.Bartender)
 	}
+}
+
+func working(foodOrderList, drinkOrderList chan order.Order) {
+	for _, chef := range chefs {
+		chef.Ready <- employee.READY
+		go chef.Work(readyFood, &wgFood, foodOrderList, &workHistory)
+	}
+
+	for _, bartender := range bartenders {
+		bartender.Ready <- employee.READY
+		go bartender.Work(readyDrinking, &wgDrinking, drinkOrderList, &workHistory)
+	}
+}
+
+func registerEmployees() {
+	employee.RegisterEmployee(employee.CHEF, func(index int) employee.IEmployee {
+		return employee.NewChef(index)
+	})
+	employee.RegisterEmployee(employee.BARTENDER, func(index int) employee.IEmployee {
+		return employee.NewBartender(index)
+	})
+}
+
+func registerFood() {
+	food.RegisterFood(food.PIZZA, func() food.IFood {
+		return food.NewPizza()
+	})
+	food.RegisterFood(food.BURGER, func() food.IFood {
+		return food.NewBurger()
+	})
+	food.RegisterFood(food.PASTA, func() food.IFood {
+		return food.NewPasta()
+	})
+}
+
+func registerDrinking() {
+	drinking.RegisterDrinking(drinking.JUICE, func() drinking.IDrinking {
+		return drinking.NewJuice()
+	})
+	drinking.RegisterDrinking(drinking.TEA, func() drinking.IDrinking {
+		return drinking.NewTea()
+	})
+	drinking.RegisterDrinking(drinking.COFFEE, func() drinking.IDrinking {
+		return drinking.NewCoffee()
+	})
 }
 
 func placeOrder() {

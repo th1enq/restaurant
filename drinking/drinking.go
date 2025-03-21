@@ -24,15 +24,17 @@ func (b *Drinking) GetRecipe() []string {
 	return b.Recipe
 }
 
+type DrinkingFactory func() IDrinking
+
+var drinkingFactories = make(map[string]DrinkingFactory)
+
+func RegisterDrinking(name string, factory DrinkingFactory) {
+	drinkingFactories[name] = factory
+}
+
 func GetDrinking(name string) (IDrinking, error) {
-	switch name {
-	case COFFEE:
-		return NewCoffee(), nil
-	case JUICE:
-		return NewJuice(), nil
-	case TEA:
-		return NewTea(), nil
-	default:
-		return nil, helper.ErrInvalidFood
+	if factory, ok := drinkingFactories[name]; ok {
+		return factory(), nil
 	}
+	return nil, helper.ErrInvalidDrinking
 }

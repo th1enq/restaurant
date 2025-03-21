@@ -1,8 +1,6 @@
 package food
 
-import (
-	"restaurant/helper"
-)
+import "restaurant/helper"
 
 const (
 	PENDING = "pending"
@@ -30,15 +28,17 @@ func (b *Food) GetRecipe() []string {
 	return b.Recipe
 }
 
+type FoodFactory func() IFood
+
+var foodFactories = make(map[string]FoodFactory)
+
+func RegisterFood(name string, factory FoodFactory) {
+	foodFactories[name] = factory
+}
+
 func GetFood(name string) (IFood, error) {
-	switch name {
-	case PIZZA:
-		return NewPizza(), nil
-	case PASTA:
-		return NewPasta(), nil
-	case BURGER:
-		return NewBurger(), nil
-	default:
-		return nil, helper.ErrInvalidFood
+	if factory, ok := foodFactories[name]; ok {
+		return factory(), nil
 	}
+	return nil, helper.ErrInvalidFood
 }

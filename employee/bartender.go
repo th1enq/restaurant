@@ -33,7 +33,7 @@ func (b *Bartender) Work(readyDrinking chan<- interface{}, wg *sync.WaitGroup, o
 	}
 }
 
-func newBartender(id int) *Bartender {
+func NewBartender(id int) *Bartender {
 	return &Bartender{
 		Employee: Employee{
 			Ready: make(chan interface{}, 1),
